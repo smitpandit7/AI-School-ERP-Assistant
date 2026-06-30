@@ -1,7 +1,10 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from app.utils.db import init_db
 from app.api.routes import router
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,10 +22,10 @@ app = FastAPI(
 
 app.include_router(router, prefix="/api/v1")
 
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "app", "static")
+
 @app.get("/")
 def root():
-    return {
-        "message": "School AI ERP Assistant is running",
-        "docs": "/docs",
-        "health": "ok"
-    }
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
