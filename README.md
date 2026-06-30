@@ -1,5 +1,4 @@
----
-
+# AI School ERP Assistant
 
 ## Architecture
 
