@@ -4,6 +4,10 @@
 
 ![Architecture Diagram](Architecture.png)
 
+## Video Explanation
+
+https://drive.google.com/file/d/1uBCSAsFRe4nVpvtTcrYH-yWzu-eCYx6T/view?usp=sharing
+
 ## Setup Instructions
 
 ### 1. Clone and create virtual environment
