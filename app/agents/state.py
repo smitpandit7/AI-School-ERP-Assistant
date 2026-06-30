@@ -4,6 +4,7 @@ class AgentState(TypedDict):
     # Input
     user_message:   str
     session_id:     str
+    student_id:     str 
 
     # Agent reasoning
     intent:         str

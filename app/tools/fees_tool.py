@@ -2,7 +2,7 @@ from langchain_core.tools import tool
 from app.utils.db import get_connection
 
 @tool
-def get_fee_status(filter_status: str = None) -> dict:
+def get_fee_status(filter_status: str = None, student_id: str = "S001") -> dict:
     """
     Fetch fee records for student S001.
     filter_status: optional — 'Paid', 'Pending', 'Overdue'

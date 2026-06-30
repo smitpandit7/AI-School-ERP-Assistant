@@ -3,7 +3,7 @@ from app.utils.db import get_connection
 from datetime import datetime, timedelta
 
 @tool
-def get_homework(filter_type: str = "pending") -> dict:
+def get_homework(filter_type: str = "pending",student_id: str = "S001") -> dict:
     """
     Fetch homework for student S001.
     filter_type options:

@@ -118,6 +118,18 @@ def init_db():
 
     conn.close()
 
+def validate_student(student_id: str) -> dict | None:
+    """
+    Returns student record if valid, None if not found.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 def _seed_data(cursor):
 
@@ -126,6 +138,49 @@ def _seed_data(cursor):
         INSERT INTO students VALUES 
         ('S001', 'Smit Pandit', '10th', 'A', 'parent@example.com')
     """)
+
+    # Second student — Aman
+    cursor.execute("""
+        INSERT INTO students VALUES 
+        ('S002', 'Aman Verma', '10th', 'B', 'aman.parent@example.com')
+    """)
+    attendance_data_aman = [
+        ('S002', '2026-06-01', 'Present', 'Mathematics'),
+        ('S002', '2026-06-02', 'Absent',  'Science'),
+        ('S002', '2026-06-03', 'Absent',  'English'),
+        ('S002', '2026-06-04', 'Present', 'History'),
+        ('S002', '2026-06-05', 'Present', 'Mathematics'),
+        ('S002', '2026-06-06', 'Holiday', None),
+        ('S002', '2026-06-07', 'Holiday', None),
+        ('S002', '2026-06-08', 'Present', 'Science'),
+        ('S002', '2026-06-09', 'Absent',  'English'),
+        ('S002', '2026-06-10', 'Present', 'Mathematics'),
+        ('S002', '2026-06-11', 'Present', 'History'),
+        ('S002', '2026-06-12', 'Absent',  'Science'),
+        ('S002', '2026-06-13', 'Holiday', None),
+        ('S002', '2026-06-14', 'Holiday', None),
+        ('S002', '2026-06-15', 'Present', 'Mathematics'),
+        ('S002', '2026-06-16', 'Present', 'English'),
+        ('S002', '2026-06-17', 'Absent',  'Science'),
+        ('S002', '2026-06-18', 'Present', 'History'),
+        ('S002', '2026-06-19', 'Absent',  'Mathematics'),
+        ('S002', '2026-06-20', 'Holiday', None),
+        ('S002', '2026-06-21', 'Holiday', None),
+        ('S002', '2026-06-22', 'Present', 'Science'),
+        ('S002', '2026-06-23', 'Present', 'English'),
+        ('S002', '2026-06-24', 'Present', 'Mathematics'),
+        ('S002', '2026-06-25', 'Absent',  'History'),
+        ('S002', '2026-06-26', 'Present', 'Science'),
+        ('S002', '2026-06-27', 'Holiday', None),
+        ('S002', '2026-06-28', 'Holiday', None),
+        ('S002', '2026-06-29', 'Present', 'Mathematics'),
+    ]
+
+    
+    cursor.executemany("""
+        INSERT INTO attendance (student_id, date, status, subject)
+        VALUES (?, ?, ?, ?)
+    """, attendance_data_aman)
 
     # Attendance — June 2026 (mix of present/absent)
     attendance_data = [
@@ -164,6 +219,7 @@ def _seed_data(cursor):
         VALUES (?, ?, ?, ?)
     """, attendance_data)
 
+
     # Marks — multiple subjects and exam types
     marks_data = [
         ('S001', 'Mathematics', 'Unit Test',  88, 100, '2026-04-10'),
@@ -191,6 +247,32 @@ def _seed_data(cursor):
         VALUES (?, ?, ?, ?, ?, ?)
     """, marks_data)
 
+    marks_data_aman = [
+        ('S002', 'Mathematics', 'Unit Test',  52, 100, '2026-04-10'),
+        ('S002', 'Mathematics', 'Midterm',    48, 100, '2026-05-15'),
+        ('S002', 'Mathematics', 'Final',      55, 100, '2026-06-20'),
+
+        ('S002', 'Science',     'Unit Test',  65, 100, '2026-04-11'),
+        ('S002', 'Science',     'Midterm',    70, 100, '2026-05-16'),
+        ('S002', 'Science',     'Final',      68, 100, '2026-06-21'),
+
+        ('S002', 'English',     'Unit Test',  88, 100, '2026-04-12'),
+        ('S002', 'English',     'Midterm',    91, 100, '2026-05-17'),
+        ('S002', 'English',     'Final',      89, 100, '2026-06-22'),
+
+        ('S002', 'History',     'Unit Test',  92, 100, '2026-04-13'),
+        ('S002', 'History',     'Midterm',    95, 100, '2026-05-18'),
+        ('S002', 'History',     'Final',      90, 100, '2026-06-23'),
+
+        ('S002', 'Computer',    'Unit Test',  74, 100, '2026-04-14'),
+        ('S002', 'Computer',    'Midterm',    78, 100, '2026-05-19'),
+        ('S002', 'Computer',    'Final',      80, 100, '2026-06-24'),
+    ]
+    cursor.executemany("""
+        INSERT INTO marks (student_id, subject, exam_type, marks, max_marks, exam_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, marks_data_aman)
+
     # Fees
     fees_data = [
         ('S001', 'Tuition Fee',   12000, '2026-06-01', '2026-06-01', 'Paid'),
@@ -205,6 +287,18 @@ def _seed_data(cursor):
         INSERT INTO fees (student_id, fee_type, amount, due_date, paid_date, status)
         VALUES (?, ?, ?, ?, ?, ?)
     """, fees_data)
+
+    fees_data_aman = [
+        ('S002', 'Tuition Fee',   12000, '2026-06-01', None,         'Overdue'),
+        ('S002', 'Transport Fee',  3000, '2026-06-01', None,         'Pending'),
+        ('S002', 'Library Fee',     500, '2026-06-01', '2026-06-02', 'Paid'),
+        ('S002', 'Tuition Fee',   12000, '2026-05-01', '2026-05-05', 'Paid'),
+        ('S002', 'Transport Fee',  3000, '2026-05-01', '2026-05-05', 'Paid'),
+    ]
+    cursor.executemany("""
+        INSERT INTO fees (student_id, fee_type, amount, due_date, paid_date, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, fees_data_aman)
 
     # Homework
     homework_data = [
@@ -221,6 +315,18 @@ def _seed_data(cursor):
         INSERT INTO homework (student_id, subject, description, assigned_date, due_date, status)
         VALUES (?, ?, ?, ?, ?, ?)
     """, homework_data)
+
+    homework_data_aman = [
+        ('S002', 'Mathematics', 'Solve exercises 5.1 to 5.3',           '2026-06-27', '2026-06-30', 'Pending'),
+        ('S002', 'Science',     'Write notes on photosynthesis',         '2026-06-20', '2026-06-23', 'Pending'),
+        ('S002', 'English',     'Write essay on climate change',         '2026-06-25', '2026-06-29', 'Submitted'),
+        ('S002', 'History',     'Read chapter 7 and answer questions',   '2026-06-28', '2026-07-01', 'Pending'),
+        ('S002', 'Computer',    'Complete Python list exercises',        '2026-06-15', '2026-06-18', 'Submitted'),
+    ]
+    cursor.executemany("""
+        INSERT INTO homework (student_id, subject, description, assigned_date, due_date, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, homework_data_aman)
 
     # Timetable — full week
     timetable_data = [
@@ -268,3 +374,44 @@ def _seed_data(cursor):
         INSERT INTO timetable (student_id, day, period, subject, teacher, start_time, end_time)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, timetable_data)
+
+    timetable_data_aman = [
+        ('S002', 'Monday', 1, 'Science',     'Mrs. Kulkarni','08:00', '08:45'),
+        ('S002', 'Monday', 2, 'Mathematics', 'Mr. Sharma',   '08:45', '09:30'),
+        ('S002', 'Monday', 3, 'History',     'Mr. Patil',    '09:45', '10:30'),
+        ('S002', 'Monday', 4, 'English',     'Ms. Desai',    '10:30', '11:15'),
+        ('S002', 'Monday', 5, 'Computer',    'Mr. Joshi',    '11:30', '12:15'),
+        ('S002', 'Monday', 6, 'Science',     'Mrs. Kulkarni','13:00', '13:45'),
+
+        ('S002', 'Tuesday', 1, 'History',    'Mr. Patil',    '08:00', '08:45'),
+        ('S002', 'Tuesday', 2, 'English',    'Ms. Desai',    '08:45', '09:30'),
+        ('S002', 'Tuesday', 3, 'Computer',   'Mr. Joshi',    '09:45', '10:30'),
+        ('S002', 'Tuesday', 4, 'Mathematics','Mr. Sharma',   '10:30', '11:15'),
+        ('S002', 'Tuesday', 5, 'Science',    'Mrs. Kulkarni','11:30', '12:15'),
+        ('S002', 'Tuesday', 6, 'History',    'Mr. Patil',    '13:00', '13:45'),
+
+        ('S002', 'Wednesday', 1, 'Computer', 'Mr. Joshi',    '08:00', '08:45'),
+        ('S002', 'Wednesday', 2, 'Mathematics','Mr. Sharma',  '08:45', '09:30'),
+        ('S002', 'Wednesday', 3, 'English',  'Ms. Desai',    '09:45', '10:30'),
+        ('S002', 'Wednesday', 4, 'History',  'Mr. Patil',    '10:30', '11:15'),
+        ('S002', 'Wednesday', 5, 'Science',  'Mrs. Kulkarni','11:30', '12:15'),
+        ('S002', 'Wednesday', 6, 'Computer', 'Mr. Joshi',    '13:00', '13:45'),
+
+        ('S002', 'Thursday', 1, 'English',   'Ms. Desai',    '08:00', '08:45'),
+        ('S002', 'Thursday', 2, 'History',   'Mr. Patil',    '08:45', '09:30'),
+        ('S002', 'Thursday', 3, 'Science',   'Mrs. Kulkarni','09:45', '10:30'),
+        ('S002', 'Thursday', 4, 'Computer',  'Mr. Joshi',    '10:30', '11:15'),
+        ('S002', 'Thursday', 5, 'Mathematics','Mr. Sharma',   '11:30', '12:15'),
+        ('S002', 'Thursday', 6, 'English',   'Ms. Desai',    '13:00', '13:45'),
+
+        ('S002', 'Friday', 1, 'Mathematics', 'Mr. Sharma',   '08:00', '08:45'),
+        ('S002', 'Friday', 2, 'Computer',    'Mr. Joshi',    '08:45', '09:30'),
+        ('S002', 'Friday', 3, 'History',     'Mr. Patil',    '09:45', '10:30'),
+        ('S002', 'Friday', 4, 'Science',     'Mrs. Kulkarni','10:30', '11:15'),
+        ('S002', 'Friday', 5, 'English',     'Ms. Desai',    '11:30', '12:15'),
+        ('S002', 'Friday', 6, 'Mathematics', 'Mr. Sharma',   '13:00', '13:45'),
+    ]
+    cursor.executemany("""
+        INSERT INTO timetable (student_id, day, period, subject, teacher, start_time, end_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, timetable_data_aman)

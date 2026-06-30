@@ -10,36 +10,59 @@ from app.models.schemas import (
 from app.agents.graph import erp_agent
 from app.memory.chat_memory import save_message, get_history, get_all_sessions, clear_session
 from app.utils.logger import get_logger, log_request
+from app.utils.db import validate_student 
 
 logger = get_logger()
 router = APIRouter()
 
+@router.get("/students/{student_id}/verify", tags=["Students"])
+def verify_student_id(student_id: str):
+    """
+    Lightweight check used by the UI gate screen — does not call the LLM.
+    """
+    student = validate_student(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student ID '{student_id}' not found.")
+    return {"valid": True, "student_id": student_id, "name": student["name"]}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # POST /chat
 # ══════════════════════════════════════════════════════════════════════════════
 @router.post("/chat", response_model=ChatResponse, tags=["Chat"])
 def chat(request: ChatRequest):
-    """
-    Main chat endpoint. Send a natural language message,
-    get back an AI-generated structured response.
-    """
     start_time = time.time()
 
-    # ── Error Handling: Empty request ──────────────────────────────
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
     session_id = request.session_id or "default"
+    student_id = request.student_id or "S001"
+
+    # ── NEW: Validate student ID ─────────────────────────────────
+    student = validate_student(student_id)
+    if not student:
+        execution_time = round(time.time() - start_time, 3)
+        log_request(
+            session_id=session_id,
+            user_query=request.message,
+            intent="InvalidStudent",
+            tools_used=[],
+            execution_time=execution_time,
+            response=f"Invalid student ID: {student_id}",
+            status="Error"
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"Student ID '{student_id}' not found. Please check and try again."
+        )
 
     try:
-        # ── Fetch chat history for context ─────────────────────────
         history = get_history(session_id, limit=10)
 
-        # ── Build initial agent state ──────────────────────────────
         initial_state = {
             "user_message":   request.message,
             "session_id":     session_id,
+            "student_id":     student_id,    # NEW
             "intent":         "",
             "plan":           [],
             "reasoning":      "",
@@ -53,7 +76,6 @@ def chat(request: ChatRequest):
             "execution_time": 0.0
         }
 
-        # ── Run the LangGraph agent ─────────────────────────────────
         result = erp_agent.invoke(initial_state)
 
         execution_time = round(time.time() - start_time, 3)

@@ -3,7 +3,7 @@ from app.utils.db import get_connection
 from datetime import datetime
 
 @tool
-def get_attendance(month: str = None) -> dict:
+def get_attendance(month: str = None,student_id: str = "S001") -> dict:
     """
     Fetch attendance records for student S001.
     month format: 'YYYY-MM' e.g. '2026-06'

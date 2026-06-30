@@ -4,6 +4,7 @@ from typing import Any, Dict
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.state import AgentState
+from app.utils.db import validate_student
 from app.tools import (
     get_attendance,
     get_marks,
@@ -57,10 +58,9 @@ def intent_classifier_node(state: AgentState) -> AgentState:
     """
     logger.info(f"[Intent Node] Message: {state['user_message']}")
 
-    # Build history context
     history_text = ""
     if state.get("chat_history"):
-        recent = state["chat_history"][-6:]  # last 3 exchanges
+        recent = state["chat_history"][-6:]
         history_text = "\n".join([
             f"{m['role'].upper()}: {m['message']}"
             for m in recent
@@ -98,7 +98,6 @@ Current Message: {state['user_message']}"""
         ])
 
         raw = response.content.strip()
-        # Strip markdown fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -135,7 +134,6 @@ def planner_node(state: AgentState) -> AgentState:
     """
     logger.info(f"[Planner Node] Planning for intent: {state['intent']}")
 
-    # Build history context
     history_text = ""
     if state.get("chat_history"):
         recent = state["chat_history"][-6:]
@@ -167,7 +165,8 @@ Rules:
 - Keep args as empty dict {{}} if tool needs no arguments
 - For get_marks with a specific subject mentioned, pass the subject name
 - For get_homework, choose filter_type based on user's question
-- For get_timetable, pass the day if mentioned"""
+- For get_timetable, pass the day if mentioned
+- NEVER include student_id in args — it is injected automatically by the system"""
 
     user_prompt = f"""Chat History:
 {history_text if history_text else 'No previous conversation.'}
@@ -216,24 +215,33 @@ def tool_executor_node(state: AgentState) -> AgentState:
     """
     Executes each tool in the plan sequentially.
     Stores all results in tool_results dict.
+    Also resolves and stores the student's name for use in the response generator.
     """
     logger.info(f"[Executor Node] Executing {len(state.get('plan', []))} tools")
 
     plan         = state.get("plan", [])
+    student_id   = state.get("student_id", "S001")
     tool_results = {}
     tools_called = []
+
+    # ── Resolve student name for personalization ──────────────────
+    student_info = validate_student(student_id)
+    student_name = student_info["name"] if student_info else "Student"
+    logger.info(f"[Executor Node] Student resolved: {student_id} -> {student_name}")
 
     if not plan:
         logger.warning("[Executor Node] No tools to execute")
         return {
             **state,
             "tool_results": {"message": "No tools were selected for this query"},
-            "tools_called": []
+            "tools_called": [],
+            "student_name": student_name
         }
 
     for step in plan:
         tool_name = step.get("tool")
-        tool_args = step.get("args", {})
+        tool_args = dict(step.get("args", {}))  # copy to avoid mutating plan
+        tool_args["student_id"] = student_id    # ALWAYS override/inject — never trust LLM-provided student_id
 
         if tool_name not in TOOL_REGISTRY:
             logger.warning(f"[Executor Node] Unknown tool: {tool_name}")
@@ -244,11 +252,7 @@ def tool_executor_node(state: AgentState) -> AgentState:
             tool_fn = TOOL_REGISTRY[tool_name]
             logger.info(f"[Executor Node] Calling {tool_name} with args: {tool_args}")
 
-            # Call tool with or without args
-            if tool_args:
-                result = tool_fn.invoke(tool_args)
-            else:
-                result = tool_fn.invoke({})
+            result = tool_fn.invoke(tool_args)
 
             tool_results[tool_name] = result
             tools_called.append(tool_name)
@@ -261,7 +265,8 @@ def tool_executor_node(state: AgentState) -> AgentState:
     return {
         **state,
         "tool_results": tool_results,
-        "tools_called": tools_called
+        "tools_called": tools_called,
+        "student_name": student_name
     }
 
 
@@ -280,6 +285,7 @@ def response_generator_node(state: AgentState) -> AgentState:
     user_message  = state["user_message"]
     intent        = state["intent"]
     tools_called  = state.get("tools_called", [])
+    student_name  = state.get("student_name", "Student")
 
     # Handle unknown intent / no tools
     if intent == "Unknown" or not tools_called:
@@ -290,19 +296,21 @@ def response_generator_node(state: AgentState) -> AgentState:
             "status":         "Error"
         }
 
-    system_prompt = """You are a friendly School ERP Assistant helping a student named Smit.
+    system_prompt = f"""You are a friendly School ERP Assistant helping a student named {student_name}.
 You receive ERP data from tools and must generate a clear, helpful, natural response.
 
 Rules:
+- Address the student by their name ({student_name}) naturally, do not assume any other name
 - Be concise but complete
-- Use simple language a student would understand  
+- Use simple language a student would understand
 - Highlight important numbers (percentages, amounts, dates, fees)
 - If data shows issues (low marks, pending fees, low attendance), mention them gently
 - For multi-tool results, organize the response section by section
 - Never make up data — only use what's provided in tool results
 - End with a helpful tip if relevant"""
 
-    user_prompt = f"""User asked: "{user_message}"
+    user_prompt = f"""Student name: {student_name}
+User asked: "{user_message}"
 Intent detected: {intent}
 Tools called: {tools_called}
 
@@ -319,7 +327,6 @@ Generate a helpful, natural response based on the above data."""
 
         final_response = response.content.strip()
 
-        # Determine overall status
         status = _determine_status(intent, tool_results)
 
         logger.info(f"[Response Node] Response generated. Status: {status}")

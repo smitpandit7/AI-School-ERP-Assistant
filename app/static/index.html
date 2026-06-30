@@ -34,6 +34,107 @@
     flex-direction: column;
   }
 
+  /* ── Gate screen ────────────────────────────────────────────── */
+  #gateScreen {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 0%, #16213a 0%, var(--bg) 60%);
+  }
+  .gate-card {
+    width: 380px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    text-align: center;
+  }
+  .gate-card .logo {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 22px;
+    margin: 0 auto 18px;
+  }
+  .gate-card h2 { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+  .gate-card p { font-size: 13px; color: var(--text-muted); margin: 0 0 24px; line-height: 1.5; }
+  .gate-card label {
+    display: block;
+    text-align: left;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .gate-card input {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 14px;
+  }
+  .gate-card input:focus { border-color: var(--accent); }
+  .gate-card button {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: white;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .gate-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .gate-card button:hover:not(:disabled) { background: var(--accent-dark); }
+
+  .gate-error {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--poor);
+    color: var(--poor);
+    font-size: 12.5px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    text-align: left;
+  }
+  .gate-error.show { display: block; }
+
+  .gate-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 16px;
+  }
+  .gate-hint code {
+    background: var(--panel-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  .gate-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── App shell (hidden until gated) ─────────────────────────── */
+  #appShell { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+
   header {
     padding: 16px 24px;
     border-bottom: 1px solid var(--border);
@@ -57,6 +158,21 @@
   header p { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
 
   .session-box { display: flex; align-items: center; gap: 8px; }
+  .student-pill {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .student-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--good);
+  }
   .session-box input {
     background: var(--panel-2);
     border: 1px solid var(--border);
@@ -64,7 +180,7 @@
     border-radius: 8px;
     padding: 6px 10px;
     font-size: 12px;
-    width: 140px;
+    width: 130px;
   }
   .session-box button {
     background: var(--panel-2);
@@ -241,54 +357,160 @@
 </head>
 <body>
 
-<header>
-  <div class="left">
+<!-- ══════════════════════ GATE SCREEN ══════════════════════ -->
+<div id="gateScreen">
+  <div class="gate-card">
     <div class="logo">S</div>
-    <div>
-      <h1>School AI ERP Assistant</h1>
-      <p>LangGraph + Groq · Agentic ERP query system</p>
-    </div>
-  </div>
-  <div class="session-box">
-    <input id="sessionInput" value="demo_session" />
-    <button onclick="newSession()">New session</button>
-    <button onclick="loadHistory()">Refresh history</button>
-  </div>
-</header>
+    <h2>School AI ERP Assistant</h2>
+    <p>Enter your Student ID to start chatting with the assistant.</p>
 
-<main>
-  <div class="chat-panel">
-    <div class="messages" id="messages">
-      <div class="empty-state" id="emptyState">
-        <h2>Ask about attendance, marks, fees, homework or timetable</h2>
-        <div class="suggestions">
-          <div class="suggestion-chip" onclick="sendQuick('Show my attendance for this month.')">Show my attendance</div>
-          <div class="suggestion-chip" onclick="sendQuick('Show my Mathematics marks.')">My Mathematics marks</div>
-          <div class="suggestion-chip" onclick="sendQuick('Have I paid this month\'s fees?')">Pending fees?</div>
-          <div class="suggestion-chip" onclick="sendQuick('What homework is pending?')">Pending homework</div>
-          <div class="suggestion-chip" onclick="sendQuick('Show tomorrow\'s timetable.')">Tomorrow's timetable</div>
-          <div class="suggestion-chip" onclick="sendQuick('Show my attendance, display my Mathematics marks, and tell me if I have any pending fees.')">Multi-step query</div>
-          <div class="suggestion-chip" onclick="sendQuick('Summarize my academic performance this semester.')">Academic summary</div>
-        </div>
+    <div class="gate-error" id="gateError"></div>
+
+    <label for="studentIdInput">Student ID</label>
+    <input id="studentIdInput" placeholder="e.g. S001" onkeydown="if(event.key==='Enter') verifyStudent()" />
+
+    <button id="verifyBtn" onclick="verifyStudent()">Continue</button>
+
+    <div class="gate-hint">Try <code>S001</code> for the demo student, or any other ID to see error handling.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ APP SHELL ══════════════════════ -->
+<div id="appShell">
+  <header>
+    <div class="left">
+      <div class="logo">S</div>
+      <div>
+        <h1>School AI ERP Assistant</h1>
+        <p>LangGraph + Groq · Agentic ERP query system</p>
       </div>
     </div>
-    <div class="input-row">
-      <input id="msgInput" placeholder="Ask about attendance, marks, fees, homework, timetable..." onkeydown="if(event.key==='Enter') send()" />
-      <button id="sendBtn" onclick="send()">Send</button>
+    <div class="session-box">
+      <div class="student-pill"><span class="dot"></span><span id="studentPill">S001</span></div>
+      <input id="sessionInput" value="demo_session" />
+      <button onclick="newSession()">New session</button>
+      <button onclick="loadHistory()">Refresh history</button>
+      <button onclick="switchStudent()">Switch student</button>
     </div>
-  </div>
+  </header>
 
-  <div class="side-panel">
-    <h3>Execution plan</h3>
-    <div id="planContent" class="empty-side">Send a message to see the agent's reasoning and execution plan here.</div>
-  </div>
-</main>
+  <main>
+    <div class="chat-panel">
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <h2>Ask about attendance, marks, fees, homework or timetable</h2>
+          <div class="suggestions">
+            <div class="suggestion-chip" onclick="sendQuick('Show my Mathematics marks.')">My Mathematics marks</div>
+            <div class="suggestion-chip" onclick="sendQuick('Have I paid this month\'s fees?')">Pending fees?</div>
+            <div class="suggestion-chip" onclick="sendQuick('What homework is pending?')">Pending homework</div>
+            <div class="suggestion-chip" onclick="sendQuick('Show tomorrow\'s timetable.')">Tomorrow's timetable</div>
+            <div class="suggestion-chip" onclick="sendQuick('Show my attendance, display my Mathematics marks, and tell me if I have any pending fees.')">Multi-step query</div>
+            <div class="suggestion-chip" onclick="sendQuick('Summarize my academic performance this semester.')">Academic summary</div>
+          </div>
+        </div>
+      </div>
+      <div class="input-row">
+        <input id="msgInput" placeholder="Ask about attendance, marks, fees, homework, timetable..." onkeydown="if(event.key==='Enter') send()" />
+        <button id="sendBtn" onclick="send()">Send</button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <h3>Execution plan</h3>
+      <div id="planContent" class="empty-side">Send a message to see the agent's reasoning and execution plan here.</div>
+    </div>
+  </main>
+</div>
 
 <script>
 const API_BASE = window.location.origin + "/api/v1";
+let currentStudentId = null;
+
+// ══════════════════════ GATE LOGIC ══════════════════════
+
+async function verifyStudent() {
+  const input = document.getElementById('studentIdInput');
+  const studentId = input.value.trim();
+  const errorBox = document.getElementById('gateError');
+  const btn = document.getElementById('verifyBtn');
+
+  errorBox.classList.remove('show');
+
+  if (!studentId) {
+    errorBox.textContent = 'Please enter a student ID.';
+    errorBox.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="gate-loading"><span class="spinner"></span> Verifying...</span>';
+
+  try {
+    // Lightweight verification endpoint — does not call the LLM.
+    const res = await fetch(`${API_BASE}/students/${encodeURIComponent(studentId)}/verify`);
+
+    if (res.status === 404) {
+      const err = await res.json().catch(() => ({}));
+      errorBox.textContent = err.detail || `Student ID '${studentId}' not found.`;
+      errorBox.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Continue';
+      return;
+    }
+
+    if (!res.ok) {
+      errorBox.textContent = 'Could not verify student ID. Please try again.';
+      errorBox.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Continue';
+      return;
+    }
+
+    const data = await res.json();
+
+    // Valid student — unlock the app
+    currentStudentId = data.student_id;
+    document.getElementById('studentPill').textContent = `${data.student_id} · ${data.name}`;
+    document.getElementById('gateScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    document.getElementById('sessionInput').value = 'session_' + data.student_id.toLowerCase();
+
+  } catch (e) {
+    errorBox.textContent = 'Could not reach the server. Is the FastAPI backend running?';
+    errorBox.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Continue';
+  }
+}
+
+function switchStudent() {
+  currentStudentId = null;
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('gateScreen').style.display = 'flex';
+  document.getElementById('studentIdInput').value = '';
+  document.getElementById('gateError').classList.remove('show');
+  document.getElementById('verifyBtn').disabled = false;
+  document.getElementById('verifyBtn').textContent = 'Continue';
+  document.getElementById('messages').innerHTML = `
+    <div class="empty-state" id="emptyState">
+      <h2>Ask about attendance, marks, fees, homework or timetable</h2>
+      <div class="suggestions">
+        <div class="suggestion-chip" onclick="sendQuick('Show my attendance for this month.')">Show my attendance</div>
+        <div class="suggestion-chip" onclick="sendQuick('Show my Mathematics marks.')">My Mathematics marks</div>
+        <div class="suggestion-chip" onclick="sendQuick('Have I paid this month\\'s fees?')">Pending fees?</div>
+        <div class="suggestion-chip" onclick="sendQuick('What homework is pending?')">Pending homework</div>
+        <div class="suggestion-chip" onclick="sendQuick('Show tomorrow\\'s timetable.')">Tomorrow's timetable</div>
+        <div class="suggestion-chip" onclick="sendQuick('Show my attendance, display my Mathematics marks, and tell me if I have any pending fees.')">Multi-step query</div>
+        <div class="suggestion-chip" onclick="sendQuick('Summarize my academic performance this semester.')">Academic summary</div>
+      </div>
+    </div>`;
+  document.getElementById('planContent').innerHTML = '<div class="empty-side">Send a message to see the agent\'s reasoning and execution plan here.</div>';
+}
+
+// ══════════════════════ CHAT LOGIC ══════════════════════
 
 function getSessionId() {
-  return document.getElementById('sessionInput').value.trim() || 'demo_session';
+  return document.getElementById('sessionInput').value.trim() || 'default';
 }
 
 function newSession() {
@@ -313,19 +535,13 @@ function clearEmptyState() {
 }
 
 function formatMessage(text) {
-  // Escape HTML first to prevent injection
   let safe = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // Convert **bold** to <strong>
   safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-  // Convert newlines to <br>
   safe = safe.replace(/\n/g, '<br>');
-
-  // Convert "- item" lines into bullet-like spacing
   safe = safe.replace(/(<br>|^)- /g, '$1• ');
 
   return safe;
@@ -444,7 +660,7 @@ async function send() {
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id: sessionId })
+      body: JSON.stringify({ message, session_id: sessionId, student_id: currentStudentId })
     });
 
     removeTyping();

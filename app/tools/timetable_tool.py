@@ -14,7 +14,7 @@ WEEKDAY_MAP = {
 }
 
 @tool
-def get_timetable(day: str = None) -> dict:
+def get_timetable(day: str = None,student_id: str = "S001") -> dict:
     """
     Fetch timetable for student S001.
     day: 'Monday', 'Tuesday', etc.

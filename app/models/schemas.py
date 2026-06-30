@@ -7,12 +7,14 @@ from typing import Optional, List, Dict, Any
 class ChatRequest(BaseModel):
     message:    str            = Field(...,           min_length=1, description="User's natural language message")
     session_id: Optional[str]  = Field("default",    description="Session ID for conversation continuity")
+    student_id: Optional[str]  = Field("S001",       description="Student ID — defaults to S001 mock student")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message":    "Show my attendance for this month.",
-                "session_id": "session_001"
+                "session_id": "session_001",
+                "student_id": "S001"
             }
         }
 

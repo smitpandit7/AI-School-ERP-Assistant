@@ -2,7 +2,7 @@ from langchain_core.tools import tool
 from app.utils.db import get_connection
 
 @tool
-def get_marks(subject: str = None) -> dict:
+def get_marks(subject: str = None,student_id: str = "S001") -> dict:
     """
     Fetch marks for student S001.
     subject: optional filter e.g. 'Mathematics', 'Science'
